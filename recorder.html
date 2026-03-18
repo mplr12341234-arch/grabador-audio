@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<body>
+  <h3>Grabador MVP</h3>
+  
+  <button id="startBtn">🎙️ Grabar</button>
+  <button id="stopBtn" disabled>⏹️ Detener</button>
+
+  <p id="status">Estado: esperando…</p>
+
+  <script>
+    let mediaRecorder;
+    let audioChunks = [];
+
+    document.getElementById("startBtn").onclick = async () => {
+      document.getElementById("status").innerText = "Estado: grabando...";
+
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorder = new MediaRecorder(stream);
+
+      audioChunks = [];
+      mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
+        const reader = new FileReader();
+
+        reader.onloadend = () => {
+          window.parent.postMessage({
+            type: "audio_base64",
+            data: reader.result
+          }, "*");
+        };
+
+        reader.readAsDataURL(audioBlob);
+      };
+
+      mediaRecorder.start();
+      document.getElementById("startBtn").disabled = true;
+      document.getElementById("stopBtn").disabled = false;
+    };
+
+    document.getElementById("stopBtn").onclick = () => {
+      document.getElementById("status").innerText = "Estado: audio listo";
+      mediaRecorder.stop();
+
+      document.getElementById("startBtn").disabled = false;
+      document.getElementById("stopBtn").disabled = true;
+    };
+  </script>
+</body>
+</html>
